@@ -94,6 +94,18 @@ eth0	0100000A	00000000	0001	0	0	0	00FFFFFF	0	0	0
 	}
 }
 
+func TestParseRouteSkipsLoopbackAndGatelessWarning(t *testing.T) {
+	// lo catch-all must never win; default route without a gateway (flags 0001)
+	// is still a valid default route on point-to-point links.
+	raw := `Iface	Destination	Gateway 	Flags	RefCnt	Use	Metric	Mask		MTU	Window	IRTT
+lo	00000000	00000000	0001	0	0	0	00000000	0	0	0
+eth0	00000000	00000000	0001	0	0	0	00000000	0	0	0
+`
+	if got := network.ParseRoute(raw); got != "eth0" {
+		t.Errorf("route iface=%q want=eth0", got)
+	}
+}
+
 func BenchmarkScoreCaps(b *testing.B) {
 	caps := []analyzer.Capability{
 		{Weight: 5, Status: analyzer.StatusOk},
