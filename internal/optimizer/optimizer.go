@@ -14,6 +14,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/anjarman20/Kairo-Linux-Performance-Optimization-Toolkit/internal/analyzer"
 	"github.com/anjarman20/Kairo-Linux-Performance-Optimization-Toolkit/internal/backend"
 	"github.com/anjarman20/Kairo-Linux-Performance-Optimization-Toolkit/internal/profile"
 	"github.com/anjarman20/Kairo-Linux-Performance-Optimization-Toolkit/internal/render"
@@ -138,23 +139,25 @@ func diskSchedulerPath(r render.Scan) (string, bool) {
 	return "", false
 }
 
-// capLookup returns the live value of a capability in a category.
-func capLookup(r render.Scan, area, capName string) (string, bool) {
+// capStatus returns a capability's live value and status.
+func capStatus(r render.Scan, area, capName string) (string, analyzer.Status, bool) {
 	for _, c := range r.Categories {
 		if c.Name != area {
 			continue
 		}
 		for _, cap := range c.Capabilities {
 			if cap.Name == capName {
-				return cap.Value, true
+				return cap.Value, cap.Status, true
 			}
 		}
 	}
-	return "", false
+	return "", "", false
 }
 
-// Plan computes the changes a profile would make against the current scan.
-// Unsupported or already-correct targets are reported, never applied.
+// Build computes the changes a profile would make against the current scan.
+// Unsupported or already-correct targets are reported, never applied. A
+// capability the analyzer flagged unsupported can never become a change even
+// when its placeholder value looks plausible.
 func Build(p profile.Profile, r render.Scan) Plan {
 	plan := Plan{Profile: p.Name}
 	for _, spec := range specs {
@@ -162,8 +165,8 @@ func Build(p profile.Profile, r render.Scan) Plan {
 		if !targeted {
 			continue
 		}
-		current, found := capLookup(r, spec.area, spec.capName)
-		if !found || current == "unavailable" || strings.Contains(current, "(unsupported)") {
+		current, status, found := capStatus(r, spec.area, spec.capName)
+		if !found || status == analyzer.StatusSkip {
 			plan.Skipped = append(plan.Skipped, fmt.Sprintf("%s.%s: feature unsupported", spec.area, spec.key))
 			continue
 		}
