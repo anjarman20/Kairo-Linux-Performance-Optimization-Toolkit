@@ -136,6 +136,29 @@ func TestPlanUnsupportedSkipped(t *testing.T) {
 	}
 }
 
+// TestPlanSkipsPlausiblePlaceholder: a capability flagged unsupported by the
+// analyzer must never turn into a write, even when its value string looks real.
+func TestPlanSkipsPlausiblePlaceholder(t *testing.T) {
+	scan := render.Scan{Categories: []render.Category{{
+		Name: "storage",
+		Capabilities: []analyzer.Capability{
+			{Name: "primary device", Value: "sda", Status: analyzer.StatusOk},
+			{Name: "scheduler", Value: "none", Status: analyzer.StatusSkip},
+		},
+	}}}
+	p := profile.Profile{Name: "database", Targets: map[string]profile.Target{"storage": {"scheduler": "mq-deadline"}}}
+	plan := Build(p, scan)
+	if len(plan.Changes) != 0 {
+		t.Fatalf("skip-status capability must not become a change: %+v", plan.Changes)
+	}
+	for _, s := range plan.Skipped {
+		if strings.Contains(s, "storage.scheduler") {
+			return
+		}
+	}
+	t.Error("expected storage.scheduler in skipped")
+}
+
 func TestApplyVerifiesAndWrites(t *testing.T) {
 	f := newFake()
 	changes := []Change{
