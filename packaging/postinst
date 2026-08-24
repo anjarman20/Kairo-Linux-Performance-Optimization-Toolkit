@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+# Kairo state and log directories must always exist and be private.
+install -d -m 0700 /var/lib/kairo /var/log/kairo
+
+# Ship a default system config, but never overwrite one the admin edited.
+CONF=/etc/kairo/config.yaml
+if [ ! -f "$CONF" ]; then
+    printf '# Kairo system configuration\n# Preserved across upgrades.\n' > "$CONF"
+    chmod 0644 "$CONF"
+fi

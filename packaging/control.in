@@ -1,0 +1,13 @@
+Package: kairo
+Version: @VERSION@
+Section: admin
+Priority: optional
+Architecture: @ARCH@
+Maintainer: anjarman20 <anjarman20@users.noreply.github.com>
+Installed-Size: 4096
+Recommends: ethtool, iproute2
+Description: Linux performance analysis and optimization toolkit
+ Detect current Linux configuration, analyze it against a selected workload
+ profile, preview every change, then apply the smallest set of justified,
+ reversible optimizations - and prove the result with benchmarks.
+ Fully offline, no telemetry, no accounts, no cloud dependencies.

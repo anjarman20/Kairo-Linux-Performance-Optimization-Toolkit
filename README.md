@@ -9,8 +9,19 @@ optimizations — and prove the result with benchmarks.
 ## Install
 
 ```bash
-make build        # bin/kairo
+go build -o bin/kairo ./cmd/kairo    # or: make install
 ```
+
+Debian/Ubuntu package:
+
+```bash
+make deb
+sudo dpkg -i dist/kairo_0.6.0_amd64.deb
+kairo analyze
+```
+
+Layout installed by the package: `/usr/bin/kairo`, `/etc/kairo/config.yaml`,
+`/var/lib/kairo/` (transaction snapshots), `/var/log/kairo/`.
 
 ## Usage
 
