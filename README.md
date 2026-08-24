@@ -22,18 +22,27 @@ kairo detect                   # raw capability probe
 kairo profile list             # available workload profiles
 kairo profile show gaming      # what a profile targets
 kairo status
-kairo version
 
-# Planned (safe optimization phases)
-kairo optimize --dry-run
-kairo profile apply gaming --dry-run
-kairo rollback <transaction-id>
+# Prescriptive optimization (transactional, reversible)
+kairo plan --profile database              # preview only, writes nothing
+kairo optimize --profile database --dry-run
+kairo optimize --profile database          # prompts [y/N] before applying
+kairo rollback <transaction-id>            # restore previous values
+kairo rollback                             # roll back the latest transaction
+
+# Benchmarking (before/after)
 kairo benchmark storage --save before.json
+kairo optimize --profile database --yes
+kairo benchmark storage --save after.json
+kairo benchmark compare before.json after.json
+kairo benchmark all
+kairo benchmark system
 ```
 
 ## Global flags
 
-`--json`, `--quiet`, `--verbose`, `--config=PATH`, `--dry-run`, `--yes`.
+`--json`, `--quiet`, `--verbose`, `--config=PATH`, `--profile=NAME`,
+`--dry-run`, `--yes`, `--save=PATH`.
 
 ## Design principles
 

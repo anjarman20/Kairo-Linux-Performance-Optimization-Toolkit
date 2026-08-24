@@ -14,13 +14,14 @@ import (
 	"time"
 
 	"github.com/anjarman20/Kairo-Linux-Performance-Optimization-Toolkit/internal/backend"
+	"github.com/anjarman20/Kairo-Linux-Performance-Optimization-Toolkit/internal/benchmark"
 	"github.com/anjarman20/Kairo-Linux-Performance-Optimization-Toolkit/internal/kairo"
 	"github.com/anjarman20/Kairo-Linux-Performance-Optimization-Toolkit/internal/optimizer"
 	"github.com/anjarman20/Kairo-Linux-Performance-Optimization-Toolkit/internal/profile"
 	"github.com/anjarman20/Kairo-Linux-Performance-Optimization-Toolkit/internal/render"
 )
 
-const version = "0.3.0"
+const version = "0.4.0"
 
 type opts struct {
 	json    bool
@@ -30,6 +31,7 @@ type opts struct {
 	profile string
 	dryRun  bool
 	yesGo   bool
+	save    string
 }
 
 func main() {
@@ -63,6 +65,8 @@ func run(args []string) int {
 		return runRollback(o, pos, ctx)
 	case "profile":
 		return runProfile(o, pos, ctx)
+	case "benchmark":
+		return runBenchmark(o, pos)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n\n", cmd)
 		usage()
@@ -307,6 +311,78 @@ func runProfile(o opts, args []string, ctx context.Context) int {
 	}
 }
 
+// runBenchmark executes one category, "all" or "system", optionally saving to
+// --save, or compares two saved runs with `benchmark compare <a> <b>`.
+func runBenchmark(o opts, pos []string) int {
+	if len(pos) == 0 {
+		fmt.Fprintln(os.Stderr, "kairo: benchmark requires a category (cpu|memory|network|storage|latency|system|all) or compare")
+		return 2
+	}
+	if pos[0] == "compare" {
+		if len(pos) < 3 {
+			fmt.Fprintln(os.Stderr, "kairo: benchmark compare requires two saved files")
+			return 2
+		}
+		diffs, err := benchmark.CompareFiles(pos[1], pos[2])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "kairo: "+err.Error())
+			return 1
+		}
+		if o.json {
+			data, _ := json.MarshalIndent(diffs, "", "  ")
+			fmt.Println(string(data))
+			return 0
+		}
+		if len(diffs) == 0 {
+			fmt.Println("No shared categories to compare.")
+			return 0
+		}
+		fmt.Println("Before vs after")
+		for _, d := range diffs {
+			mark := "regression"
+			if d.Improved {
+				mark = "improvement"
+			}
+			fmt.Printf("  %-8s %8.1f -> %8.1f %-14s (%+.1f%%) %s\n", d.Category, d.Before, d.After, d.Unit, d.DeltaPct, mark)
+		}
+		return 0
+	}
+
+	switch pos[0] {
+	case "cpu", "memory", "network", "storage", "latency", "system", "all":
+	default:
+		fmt.Fprintf(os.Stderr, "kairo: unknown benchmark category %q\n", pos[0])
+		return 2
+	}
+	results, err := benchmark.RunSet(pos[0])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "kairo: "+err.Error())
+		return 1
+	}
+	if o.save != "" {
+		if err := benchmark.Save(o.save, results); err != nil {
+			fmt.Fprintf(os.Stderr, "kairo: failed to save benchmark: %v\n", err)
+			return 1
+		}
+	}
+	if o.json {
+		data, _ := json.MarshalIndent(results, "", "  ")
+		fmt.Println(string(data))
+		return 0
+	}
+	fmt.Printf("Kairo benchmark: %s\n", pos[0])
+	for _, r := range results {
+		fmt.Printf("  %-8s %s\n", r.Category, r.Text)
+		for _, w := range r.Warnings {
+			fmt.Printf("    warning: %s\n", w)
+		}
+	}
+	if o.save != "" {
+		fmt.Printf("\nSaved to %s\n", o.save)
+	}
+	return 0
+}
+
 func sortedKeys(m map[string]string) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -332,7 +408,14 @@ func parseArgs(args []string) (opts, string, []string, []string) {
 	var cmd string
 	var pos []string
 	var errs []string
-	for _, a := range args {
+	next := func(i int) (string, bool) {
+		if i+1 < len(args) {
+			return args[i+1], true
+		}
+		return "", false
+	}
+	for i := 0; i < len(args); i++ {
+		a := args[i]
 		switch a {
 		case "--json", "-json":
 			o.json = true
@@ -350,6 +433,15 @@ func parseArgs(args []string) (opts, string, []string, []string) {
 			errs = append(errs, "--config requires a path")
 		case "--profile=":
 			errs = append(errs, "--profile requires a name")
+		case "--save=":
+			errs = append(errs, "--save requires a path")
+		case "--save":
+			if v, ok := next(i); ok {
+				o.save = v
+				i++
+			} else {
+				errs = append(errs, "--save requires a path")
+			}
 		case "--version":
 			cmd = "version"
 		default:
@@ -358,6 +450,8 @@ func parseArgs(args []string) (opts, string, []string, []string) {
 				o.config = strings.TrimPrefix(a, "--config=")
 			case strings.HasPrefix(a, "--profile="):
 				o.profile = strings.TrimPrefix(a, "--profile=")
+			case strings.HasPrefix(a, "--save="):
+				o.save = strings.TrimPrefix(a, "--save=")
 			case strings.HasPrefix(a, "-c="):
 				o.config = strings.TrimPrefix(a, "-c=")
 			case strings.HasPrefix(a, "-"):
@@ -386,6 +480,7 @@ Commands:
   optimize             apply a profile transactionally (dry-run first)
   rollback [<id>]      restore previous values of one transaction
   profile              list / show / apply workload profiles
+  benchmark            cpu|memory|network|storage|latency|system|all | compare <a> <b>
   version              version and kernel info
 
 Flags:
@@ -396,5 +491,6 @@ Flags:
   --profile=NAME select workload profile
   --dry-run      preview changes; nothing is written
   --yes          skip the apply confirmation prompt
+  --save=PATH    write benchmark results to a JSON file
 `)
 }
