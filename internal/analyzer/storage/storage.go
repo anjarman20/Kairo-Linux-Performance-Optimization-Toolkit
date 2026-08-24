@@ -17,20 +17,19 @@ type Analyzer struct{}
 func (Analyzer) Name() string { return "storage" }
 
 // realDisks returns block devices that are not virtual/loop/cdrom.
+// realDisks returns whole block devices that are not virtual/loop/cdrom or
+// partitions. Partitions carry a "partition" attribute file in their dir.
 func realDisks() []string {
 	var disks []string
 	for _, p := range analyzer.Globs("/sys/class/block/*") {
 		name := strings.TrimPrefix(p, "/sys/class/block/")
-		if name == "loop0" || strings.HasPrefix(name, "loop") {
+		if strings.HasPrefix(name, "loop") || strings.HasPrefix(name, "ram") || strings.HasPrefix(name, "zd") {
 			continue
 		}
-		if strings.HasPrefix(name, "ram") || strings.HasPrefix(name, "zd") {
+		if strings.HasPrefix(name, "sr") || strings.HasPrefix(name, "dm-") {
 			continue
 		}
-		if name == "sr0" || strings.HasPrefix(name, "sr") {
-			continue
-		}
-		if strings.HasPrefix(name, "dm-") {
+		if analyzer.PathExists(p + "/partition") {
 			continue
 		}
 		disks = append(disks, name)

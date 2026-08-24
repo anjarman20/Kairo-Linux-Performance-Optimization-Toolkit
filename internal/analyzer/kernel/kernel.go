@@ -18,18 +18,24 @@ type Analyzer struct{}
 func (Analyzer) Name() string { return "kernel" }
 
 func virtualized() string {
-	raw, err := os.ReadFile("/proc/cpuinfo")
-	if err == nil && strings.Contains(string(raw), ": hypervisor") {
-		return "yes (hypervisor flag)"
-	}
-	for _, p := range analyzer.Globs("/sys/class/dmi/id/*") {
-		v, err := analyzer.ReadTrim(p + "/product_name")
-		if err == nil {
-			n := strings.ToLower(v)
-			for _, hv := range []string{"kvm", "qemu", "vmware", "xen", "virtualbox", "virtual machine"} {
-				if strings.Contains(n, hv) {
-					return "yes (" + v + ")"
+	if raw, err := os.ReadFile("/proc/cpuinfo"); err == nil {
+		for _, ln := range strings.Split(string(raw), "\n") {
+			k, v, ok := strings.Cut(ln, ":")
+			if !ok || strings.TrimSpace(k) != "flags" {
+				continue
+			}
+			for _, f := range strings.Fields(v) {
+				if f == "hypervisor" {
+					return "yes (hypervisor flag)"
 				}
+			}
+		}
+	}
+	if v, err := analyzer.ReadTrim("/sys/class/dmi/id/product_name"); err == nil {
+		n := strings.ToLower(v)
+		for _, hv := range []string{"kvm", "qemu", "vmware", "xen", "virtualbox", "virtual machine", "vbox"} {
+			if strings.Contains(n, hv) {
+				return "yes (" + v + ")"
 			}
 		}
 	}

@@ -71,7 +71,7 @@ func (Analyzer) Detect(ctx context.Context) (analyzer.Result, error) {
 		memCap(mem),
 		availCap(mem, gb),
 		swapCap(mem, gb),
-		capFromSysctl("/proc/sys/vm/swappiness", "swappiness", 4, 60),
+		swappinessCap(),
 		capFromSysctl("/proc/sys/vm/vfs_cache_pressure", "vfs cache pressure", 4, 10),
 		overcommitCap(),
 		thpCap(),
@@ -82,6 +82,20 @@ func (Analyzer) Detect(ctx context.Context) (analyzer.Result, error) {
 
 func memCap(mem MemInfo) analyzer.Capability {
 	return analyzer.Capability{Name: "memtotal", Value: strconv.FormatInt(mem.Available, 10) + " avail / " + strconv.FormatInt(mem.Total, 10) + " MB", Weight: 4, Status: analyzer.StatusOk}
+}
+
+// swappinessCap warns only when swap pressure is aggressive; low values are
+// the desired direction for most workloads, so they must not be penalized.
+func swappinessCap() analyzer.Capability {
+	v, err := analyzer.ReadTrim("/proc/sys/vm/swappiness")
+	if err != nil {
+		return analyzer.Capability{Name: "swappiness", Value: "unavailable", Weight: 4, Status: analyzer.StatusSkip}
+	}
+	st := analyzer.StatusOk
+	if n, err := strconv.Atoi(v); err == nil && n > 60 {
+		st = analyzer.StatusWarn
+	}
+	return analyzer.Capability{Name: "swappiness", Value: v, Weight: 4, Status: st}
 }
 
 func availCap(mem MemInfo, gb func(int64) string) analyzer.Capability {

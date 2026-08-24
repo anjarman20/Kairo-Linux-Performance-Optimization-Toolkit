@@ -19,14 +19,15 @@ type Analyzer struct{}
 func (Analyzer) Name() string { return "network" }
 
 // ParseRoute extracts the interface carrying the IPv4 default route from
-// /proc/net/route (destination == 00000000). Exported for parser testing.
+// /proc/net/route: destination and mask both zero (00000000). The loopback
+// catch-all entry is skipped. Exported for parser testing.
 func ParseRoute(text string) string {
 	for _, ln := range strings.Split(text, "\n") {
 		f := strings.Fields(ln)
-		if len(f) < 2 || f[0] == "Iface" {
+		if len(f) < 8 || f[0] == "Iface" || f[0] == "lo" {
 			continue
 		}
-		if f[1] == "00000000" && (len(f) < 10 || f[3] != "0001") {
+		if f[1] == "00000000" && f[7] == "00000000" {
 			return f[0]
 		}
 	}

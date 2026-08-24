@@ -65,6 +65,13 @@ func JSON(w io.Writer, s Scan) error {
 	return enc.Encode(s)
 }
 
+// HumanTransaction appends the latest-transaction summary line, if any.
+func HumanTransaction(w io.Writer, line string) {
+	if line != "" {
+		fmt.Fprint(w, line)
+	}
+}
+
 // Human writes the terminal report.
 func Human(w io.Writer, s Scan, quiet, verbose bool) {
 	fmt.Fprintf(w, "Kairo System Analyzer (v%s)\n\n", s.System.Version)
@@ -109,6 +116,6 @@ func Human(w io.Writer, s Scan, quiet, verbose bool) {
 		}
 	}
 	if verbose {
-		fmt.Fprintf(w, "\nUsage: root=%t, config: see --help\n", s.System.Root)
+		fmt.Fprintf(w, "\nroot: %t, kernel: %s\n", s.System.Root, s.System.Kernel)
 	}
 }
