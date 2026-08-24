@@ -1,0 +1,6 @@
+/bin/
+/dist/
+/*.deb
+/*.buildinfo
+/*.changes
+kairo
