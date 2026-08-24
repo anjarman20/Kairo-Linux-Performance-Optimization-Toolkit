@@ -32,6 +32,22 @@ type Category struct {
 	Capabilities []analyzer.Capability `json:"capabilities"`
 }
 
+// Hint compares one profile target against the live analyzed value.
+type Hint struct {
+	Area    string `json:"area"`
+	Key     string `json:"key"`
+	Current string `json:"current"`
+	Target  string `json:"target"`
+	Status  string `json:"status"` // match | differs | unsupported
+}
+
+// Profile carries the actively selected workload profile in a scan.
+type Profile struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Hints       []Hint `json:"hints"`
+}
+
 // Scan is the full machine-readable report.
 type Scan struct {
 	System     System             `json:"system"`
@@ -39,6 +55,7 @@ type Scan struct {
 	Score      float64            `json:"score"`
 	MaxScore   float64            `json:"max_score"`
 	Findings   []analyzer.Finding `json:"findings"`
+	Profile    *Profile           `json:"profile,omitempty"`
 }
 
 // JSON writes the complete scan as indented, stable JSON.
@@ -75,6 +92,14 @@ func Human(w io.Writer, s Scan, quiet, verbose bool) {
 			}
 			fmt.Fprintln(w)
 		}
+	}
+
+	if s.Profile != nil {
+		fmt.Fprintf(w, "Profile: %s\n  %s\n\nProfile targets vs current\n", s.Profile.Name, s.Profile.Description)
+		for _, h := range s.Profile.Hints {
+			fmt.Fprintf(w, "  %-34s target=%s current=%s [%s]\n", h.Area+"."+h.Key, h.Target, h.Current, h.Status)
+		}
+		fmt.Fprintln(w)
 	}
 
 	if len(s.Findings) > 0 {
