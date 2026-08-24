@@ -106,6 +106,41 @@ eth0	00000000	00000000	0001	0	0	0	00000000	0	0	0
 	}
 }
 
+func TestParseIrqs(t *testing.T) {
+	raw := `           CPU0       CPU1
+  0:         11          0   IO-APIC   2-edge      timer
+ 24:         42         37   PCI-MSI 33554465-edge      ens3-TxRx-0
+ 25:         10         55   PCI-MSI 33554466-edge      ens3-TxRx-1
+ 26:          0          0   PCI-MSI 33554467-edge      igbvf
+`
+	got := network.ParseIrqs(raw, "ens3")
+	if len(got) != 2 || got[0] != 24 || got[1] != 25 {
+		t.Errorf("ParseIrqs(ens3)=%v want [24 25]", got)
+	}
+	if len(network.ParseIrqs(raw, "eth0")) != 0 {
+		t.Error("unrelated interface must match nothing")
+	}
+}
+
+func TestAffinityCoversAll(t *testing.T) {
+	cases := []struct {
+		mask string
+		cpus int
+		want bool
+	}{
+		{"f", 4, true},     // all 4 bits
+		{"3", 4, false},    // only two CPUs
+		{"ff,ff", 2, true}, // saturated 64-bit mask => unrestricted/broadcast
+		{"f", 64, true},    // saturated all-ff
+		{"4", 4, false},    // single CPU
+	}
+	for _, c := range cases {
+		if got := network.AffinityCoversAll(c.mask, c.cpus); got != c.want {
+			t.Errorf("AffinityCoversAll(%q,%d)=%v want=%v", c.mask, c.cpus, got, c.want)
+		}
+	}
+}
+
 func BenchmarkScoreCaps(b *testing.B) {
 	caps := []analyzer.Capability{
 		{Weight: 5, Status: analyzer.StatusOk},
