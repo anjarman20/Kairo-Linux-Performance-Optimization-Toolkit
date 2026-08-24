@@ -18,10 +18,6 @@ import (
 	"github.com/anjarman20/Kairo-Linux-Performance-Optimization-Toolkit/internal/render"
 )
 
-type scaner struct {
-	analyzers []analyzer.Analyzer
-}
-
 // Scan runs the full detection pipeline. A failing analyzer degrades into an
 // informational category instead of aborting the whole scan. A non-nil profile
 // adds profile-aware hints comparing targets to live values.

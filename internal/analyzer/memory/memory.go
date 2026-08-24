@@ -99,8 +99,10 @@ func swappinessCap() analyzer.Capability {
 }
 
 func availCap(mem MemInfo, gb func(int64) string) analyzer.Capability {
-	if mem.Total == 0 {
-		return analyzer.Capability{Name: "memavailable", Value: "unknown", Weight: 4, Status: analyzer.StatusSkip}
+	if mem.Total == 0 || mem.Available == 0 {
+		// Older kernels without MemAvailable must not be reported as a
+		// "needs review" situation; it is simply unsupported here.
+		return analyzer.Capability{Name: "mem available", Value: "unavailable", Weight: 4, Status: analyzer.StatusSkip}
 	}
 	if mem.Available*10 < mem.Total {
 		return analyzer.Capability{Name: "mem available", Value: gb(mem.Available), Weight: 4, Status: analyzer.StatusWarn}
