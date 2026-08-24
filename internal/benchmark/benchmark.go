@@ -290,9 +290,7 @@ func runStorage(sys SystemInfo, dir string, size int) (Result, error) {
 
 	total := float64(got) / (1024 * 1024)
 	w := sys.baseWarnings()
-	if sys.FrequencyKHz > 0 && sys.CPUGovernor == "" {
-		w = append(w, "storage benchmark benefits from page cache; first run after a host restart is slower")
-	}
+	w = append(w, "storage reads may be served from page cache; first run after a host restart is slower")
 	res := Result{
 		Category:       "storage",
 		Value:          total / readDur.Seconds(),

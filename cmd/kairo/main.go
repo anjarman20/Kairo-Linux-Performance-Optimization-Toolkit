@@ -74,8 +74,23 @@ func run(args []string) int {
 	}
 }
 
-// resolveProfile returns the requested profile, defaulting to balanced when
-// none is given. Mutating commands always act on an explicit profile.
+// requireProfile is used by mutating commands: an optimization must never act
+// on a silently-chosen default profile.
+func requireProfile(o opts) (profile.Profile, bool) {
+	if o.profile == "" {
+		fmt.Fprintln(os.Stderr, "kairo: optimize requires an explicit profile\n\nProfiles:\n  balanced  gaming  network  compute  database  virtualization\n\nExample:\n  kairo optimize --profile=database --dry-run")
+		return profile.Profile{}, false
+	}
+	p, err := profile.Get(o.profile)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "kairo: "+err.Error())
+		return profile.Profile{}, false
+	}
+	return p, true
+}
+
+// resolveProfile returns the requested profile, defaulting to balanced for
+// read-only planning. Mutating commands use requireProfile instead.
 func resolveProfile(o opts) (profile.Profile, bool) {
 	name := o.profile
 	if name == "" {
@@ -167,7 +182,7 @@ func runPlan(o opts, ctx context.Context) int {
 }
 
 func runOptimize(o opts, ctx context.Context) int {
-	p, ok := resolveProfile(o)
+	p, ok := requireProfile(o)
 	if !ok {
 		return 1
 	}
