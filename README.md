@@ -1,46 +1,49 @@
 # Kairo
 
-Open-source Linux performance analysis and optimization toolkit.
+Linux performance analysis and optimization toolkit.
 
-Phase 1 status: read-only detection CLI. Detect → Analyze → Plan → Show →
-Apply → Verify → Benchmark pipeline in later phases.
+Detect what your server is doing, select a workload profile, preview every
+change, then apply only the smallest set of justified, reversible
+optimizations — and prove the result with benchmarks.
 
-## Build
+## Install
 
 ```bash
 make build        # bin/kairo
-make test         # unit tests, no root, no network
-make vet
 ```
 
 ## Usage
 
 ```bash
-kairo analyze              # human report + transparent score
-kairo analyze --json       # stable machine-readable output only
-kairo detect               # raw capability probe
+kairo analyze                  # full system report + transparent score
+kairo analyze --json           # machine-readable output for automation
+kairo analyze --profile gaming # compare a workload profile vs live state
+kairo detect                   # raw capability probe
+kairo profile list             # available workload profiles
+kairo profile show gaming      # what a profile targets
 kairo status
 kairo version
+
+# Planned (safe optimization phases)
+kairo optimize --dry-run
+kairo profile apply gaming --dry-run
+kairo rollback <transaction-id>
+kairo benchmark storage --save before.json
 ```
 
-Global flags: `--json`, `--quiet`, `--verbose`, `--config=PATH`,
-`--dry-run`, `--yes` (mutating flags active in Phase 3).
+## Global flags
 
-## Principles
+`--json`, `--quiet`, `--verbose`, `--config=PATH`, `--dry-run`, `--yes`.
 
-- Safety first: every change reversible, dry-run mandatory before mutating.
-- Native interfaces (`/proc`, `/sys`, sysctl) over shell parsing.
-- No assumptions about CPU vendor, NIC, kernel, or NUMA layout.
-- **zswap/zram are out of scope** — never modified, never recommended.
-- No firewall/SSH management.
-- Fully offline, no telemetry, no cloud dependencies.
+## Design principles
 
-## Docs
-
-- [PRD](docs/PRD.md)
-- [Roadmap](docs/ROADMAP.md)
-- [AGENTS.md](AGENTS.md)
+- Detection before modification: nothing changes until you see the plan.
+- Every mutation reversible, with a stored snapshot and rollback.
+- Native Linux interfaces (`/proc`, `/sys`, sysctl) preferred over parsing
+  human-oriented command output.
+- No assumptions about CPU vendor, NIC, disk, or kernel version.
+- Runs fully offline. No telemetry, no accounts, no cloud dependencies.
 
 ## License
 
-TBD by project owner.
+Apache License 2.0. See [LICENSE](LICENSE).
