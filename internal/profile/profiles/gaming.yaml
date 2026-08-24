@@ -1,0 +1,9 @@
+name: gaming
+description: Optimize a Linux server for latency-sensitive game workloads.
+  Prioritizes consistent, low latency over raw throughput.
+targets:
+  cpu:
+    governor: performance
+  network:
+    congestion_control: bbr
+    qdisc: fq

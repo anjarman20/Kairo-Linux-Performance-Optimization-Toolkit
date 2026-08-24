@@ -1,0 +1,7 @@
+name: balanced
+description: Safe general-purpose tuning. Applies only widely-beneficial,
+  low-risk changes that suit general server workloads.
+targets:
+  network:
+    congestion_control: bbr
+    qdisc: fq_codel

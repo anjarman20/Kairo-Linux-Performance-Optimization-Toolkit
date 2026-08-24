@@ -1,0 +1,10 @@
+name: virtualization
+description: Prioritize VM density, CPU scheduling, and I/O behavior on
+  virtualization hosts.
+targets:
+  cpu:
+    governor: performance
+  memory:
+    swappiness: "10"
+  network:
+    congestion_control: bbr

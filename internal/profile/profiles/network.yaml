@@ -1,0 +1,11 @@
+name: network
+description: Prioritize throughput and packet processing for network-heavy
+  services such as proxies, media servers, and packet shapers.
+targets:
+  cpu:
+    governor: performance
+  network:
+    congestion_control: bbr
+    qdisc: fq
+  memory:
+    swappiness: "10"

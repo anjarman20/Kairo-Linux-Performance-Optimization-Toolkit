@@ -1,0 +1,9 @@
+name: database
+description: Prioritize predictable I/O and memory behavior for database
+  workloads. Low swap usage and cache-friendly storage scheduling.
+targets:
+  memory:
+    swappiness: "10"
+    vfs_cache_pressure: "50"
+  storage:
+    scheduler: mq-deadline

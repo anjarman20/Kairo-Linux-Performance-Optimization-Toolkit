@@ -1,0 +1,8 @@
+name: compute
+description: Prioritize CPU throughput for compute workloads. Reduces swap
+  pressure so memory stays committed to running processes.
+targets:
+  cpu:
+    governor: performance
+  memory:
+    swappiness: "10"
